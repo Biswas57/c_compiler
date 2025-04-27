@@ -1,0 +1,17 @@
+Program
+  DeclList
+    GlobalVarDecl
+      int
+      i
+    DeclList
+      GlobalVarDecl
+        float
+        f
+        =
+        FloatExpr
+          1.0
+      DeclList
+        GlobalVarDecl
+          boolean
+          b
+        EmptyDeclList

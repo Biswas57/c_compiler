@@ -1,0 +1,64 @@
+#!/bin/bash
+# Usage: ./run_one.sh <testname> [input]
+# Example: ./run_one.sh gcd "5\n10"
+
+testname="$1"
+input="$2"
+
+if [ -z "$testname" ]; then
+  echo "Usage: $0 <testname> [input]"
+  exit 1
+fi
+
+JASMIN="java -cp ../jasmin/classes jasmin.Main"
+OUTDIR="../../"
+WORKDIR="$(pwd)"
+
+vcfile="$testname.vc"
+jfile="$testname.j"
+reffile="${testname}_ref.j"
+
+echo "==========================="
+echo "Running test: $testname"
+echo "==========================="
+
+# 1. Compile .vc → .j
+java VC.vc "$vcfile" || { echo "❌ VC compiler failed"; exit 1; }
+
+# 2. Assemble ref version
+$JASMIN -d "$OUTDIR" "$reffile" || { echo "❌ Jasmin failed for $reffile"; exit 1; }
+
+# 3. Run ref version
+pushd "$OUTDIR" > /dev/null
+echo -e "$input" | java -cp . "$testname" > "$WORKDIR/ref.out" \
+  || { echo "❌ Runtime error (ref)"; popd > /dev/null; exit 1; }
+popd > /dev/null
+
+# 4. Assemble new version (your compiler output)
+$JASMIN -d "$OUTDIR" "$jfile" || { echo "❌ Jasmin failed for $jfile"; exit 1; }
+
+# 5. Run new version
+pushd "$OUTDIR" > /dev/null
+echo -e "$input" | java -cp . "$testname" > "$WORKDIR/new.out" \
+  || { echo "❌ Runtime error (new)"; popd > /dev/null; exit 1; }
+popd > /dev/null
+
+echo "✅ Executions finished — outputs saved as ref.out and new.out"
+
+###############################################################################
+#                   --  EXTRA DIAGNOSTICS  --
+###############################################################################
+
+# echo -e "\n────────── Jasmin diff (reference vs yours) ──────────"
+# if command -v colordiff &> /dev/null; then
+#   colordiff -u "$reffile" "$jfile" | sed 's/^/    /'
+# else
+#   diff -u "$reffile" "$jfile" | sed 's/^/    /'
+# fi
+
+echo -e "\n────────── Program output diff (reference vs yours) ──────────"
+if command -v colordiff &> /dev/null; then
+  colordiff -u "$WORKDIR/ref.out" "$WORKDIR/new.out" | sed 's/^/    /'
+else
+  diff -u "$WORKDIR/ref.out" "$WORKDIR/new.out" | sed 's/^/    /'
+fi

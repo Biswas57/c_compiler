@@ -1,0 +1,14 @@
+Program
+  DeclList
+    GlobalVarDecl
+      int
+      i
+    DeclList
+      GlobalVarDecl
+        int
+        jj
+      DeclList
+        GlobalVarDecl
+          int
+          kkk
+        EmptyDeclList

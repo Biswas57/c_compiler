@@ -1,0 +1,84 @@
+#!/bin/bash
+# test.sh - Testing script for the VC compiler.
+#
+# This version ignores source‑position information in error messages.
+#
+# Assumptions:
+#   - Test files (t*.vc) and expected solution files (t*.sol) are in the
+#     current directory.
+#   - The VC compiler is built from the VC, VC/ASTs, VC/Checker, and
+#     VC/Parser directories.
+#
+# Usage: ./test.sh
+#
+# The script compiles the VC compiler, then for each test file it runs
+#     java VC.vc  tN.vc
+# and compares its output (with positions stripped) to tN.sol (also stripped).
+
+echo "Compiling VC compiler..."
+javac  ../*.java  ../ASTs/*.java  ../Checker/*.java  ../Parser/*.java
+if [ $? -ne 0 ]; then
+    echo "Compilation of VC compiler failed."
+    exit 1
+fi
+
+PASS=0
+FAIL=0
+
+# Helper: strip the source‑position part of each ERROR line.
+# Converts
+#   ERROR: 4(2)..4(11): *7: invalid lvalue in assignment
+# to
+#   ERROR: *7: invalid lvalue in assignment
+strip_pos () {
+    # Use extended regex (-E) for readability
+    sed -E 's/^ERROR:[[:space:]]+[0-9]+\([0-9]+\)\.\.[0-9]+\([0-9]+\):[[:space:]]+/ERROR: /'
+}
+
+for testfile in t*.vc; do
+    base="${testfile%.*}"
+    solfile="${base}.sol"
+
+    if [ ! -f "$solfile" ]; then
+        echo "Solution file not found for $testfile (expected $solfile)."
+        continue
+    fi
+
+    echo "--------------------------------------------------"
+    echo "Running test: $testfile"
+
+    # Run the VC compiler and capture output
+    java VC.vc "$testfile" > output.tmp 2>&1
+
+    # Strip positions from both outputs
+    strip_pos < output.tmp  > output.norm
+    strip_pos < "$solfile" > solution.norm
+
+    # Compare normalised outputs
+    diff -u output.norm solution.norm > diff.tmp
+    if [ $? -eq 0 ]; then
+        echo "Test $testfile: PASSED"
+        PASS=$((PASS+1))
+    else
+        echo "Test $testfile: FAILED"
+        echo
+        echo "VC file:"
+        cat "$testfile"
+        echo
+        echo "My Output:"
+        cat output.tmp
+        echo
+        echo "Solution output:"
+        cat "$solfile"
+        echo
+        echo "Differences (positions ignored):"
+        cat diff.tmp
+        FAIL=$((FAIL+1))
+    fi
+done
+
+rm -f output.tmp output.norm solution.norm diff.tmp
+
+echo "--------------------------------------------------"
+echo "Total tests passed: $PASS, failed: $FAIL"
+exit $FAIL

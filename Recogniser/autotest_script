@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+TEST_DIR="Recogniser/test_files"
+
+for file in "$TEST_DIR"/*.vc; do
+    base=$(basename "$file" .vc)
+    sol_file="$TEST_DIR/$base.sol"
+    out_file="$TEST_DIR/$base.out"
+    
+    echo "Testing $base.vc..."
+    
+    # Change directory and run the compiler
+    cd /import/glass/7/z5476570/VC && javac vc.java && java VC.vc "$file" > "$out_file"
+    
+    if diff "$out_file" "$sol_file" >/dev/null 2>&1; then
+        echo "$base: PASS\n"
+    else
+        echo "$base: FAIL\n"
+        echo -e "Correct Output:\n$(cat "$sol_file")\n"
+        echo -e "Your Output:\n$(cat "$out_file")\n"
+        echo -e "Difference:\n$(diff "$sol_file" "$out_file")\n"
+        echo -e "Test Case File:\n$(cat "$file")\n"
+    fi
+done

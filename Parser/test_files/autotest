@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+passed=0
+failed=0
+
+for i in `ls t*.vc` 
+do
+	echo $i:
+	java VC.vc $i 
+    diff_output=$(diff ${i}u `basename $i .vc`.sol)
+    if [ $? -eq 0 ]; then
+        echo "Test: PASSED"
+        echo
+        ((passed++))
+    else
+        echo "Test: FAILED"
+        echo "Your Output:"
+        echo "$(cat ${i}u)"
+        echo
+        echo "Solution Output:"
+        echo "$(cat `basename $i .vc`.sol)"
+        echo 
+        echo "Difference: $diff_output"
+        echo
+        ((failed++))
+    fi
+done
+
+echo "tests passed: $passed"
+echo "tests failed: $failed"
